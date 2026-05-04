@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#003366">
+    <title>Control de Unidades - THR</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-superior">
+                <div class="hora-actual" id="horaActual"></div>
+                <div class="campo-usuario">
+                    <label for="nombreUsuario">Guardia:</label>
+                    <input type="text" id="nombreUsuario" placeholder="Nombre del guardia">
+                </div>
+            </div>
+
+            <div class="header-contenedor">
+                <img src="/img/logo2.png" alt="THR logo" class="logo" id="logoImg" onerror="this.style.display='none'">
+                <h4>CONTROL ENTRADA Y SALIDA DE UNIDADES</h4>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="openTab(event,'traileros')">TRAILEROS</button>
+            <button class="tab-btn" onclick="openTab(event, 'personal')">PERSONAL</button>
+            <button class="tab-btn" onclick="openTab(event, 'historial')">📋 HISTORIAL</button>
+        </nav>
+
+        <div id="traileros" class="tab-content active">
+            <!-- Vista móvil: mensaje para girar pantalla -->
+            <div class="rotate-message">
+                <p>🔄 Gira tu dispositivo para ver mejor la tabla</p>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>FECHA</th>
+                            <th>OPERADOR</th>
+                            <th>H. ENTRADA</th>
+                            <th>PROCEDENCIA</th>
+                            <th>H. SALIDA</th>
+                            <th>DESTINO</th>
+                            <th>No. CAMION</th>
+                            <th>No. CAJA</th>
+                            <th>ANOMALIAS</th>
+                            <th>FIRMA</th>
+                            <th>ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoTabla"></tbody>
+                </table>
+            </div>
+
+            <!-- Barra de acciones -->
+            <div class="action-bar">
+                <button class="btn btn-reboot" onclick="reiniciarHoja()" style="background-color: #ad1f1f; 
+                color: white; margin-right:10px;">🔄 REINICIAR PAGINA</button>
+
+                <button class="btn btn-pdf" onclick="exportarPDFCompleto()">
+                    <span class="btn-icon">📥</span> DESCARGAR REPORTE
+                </button>
+
+                <button class="btn btn-clear" onclick="limpiarTablaActual()"
+                    style="background-color: #dc3545;color: white; margin-left: 10px;">🗑️ VACIAR TABLA</button>
+            </div>
+        </div>
+
+        <!-- PESTAÑA PERSONAL -->
+        <div id="personal" class="tab-content">
+            <div class="seccion-admin">
+                <h4>Administrar Traileros</h4>
+                <div class="row">
+                    <input type="text" id="nuevoNombre" placeholder="Nombre del trailero">
+                    <button class="btn btn-submit" onclick="agregarNombre()">AÑADIR TRAILERO</button>
+                </div>
+
+                <div id="modalEdicion" class="modal-edicion" style="display: none;">
+                    <div class="modal-edicion-content">
+                        <h5>Editar Nombre</h5>
+                        <input type="text" id="nombreEditando" placeholder="Nuevo nombre">
+                        <input type="hidden" id="indiceEditando">
+                        <div class="modal-edicion-btns">
+                            <button class="btn btn-submit" onclick="guardarEdicion()">GUARDAR</button>
+                            <button class="btn btn-clear" onclick="cancelarEdicion()">CANCELAR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="listas-admin">
+                    <div class="col-lista">
+                        <h5>Lista de Traileros</h5>
+                        <ul id="listaOps"></ul>
+                    </div>
+                </div>
+
+                <!-- Botón para limpiar todos los datos -->
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn btn-clear" onclick="limpiarTodosLosDatos()" style="background-color: #dc3545;">
+                        🗑️ LIMPIAR TODOS LOS DATOS
+                    </button>
+                    <p style="font-size: 11px; color: #666; margin-top: 5px;">
+                        *Los datos se guardan automáticamente
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PESTAÑA HISTORIAL -->
+        <div id="historial" class="tab-content">
+            <div class="seccion-admin">
+                <h4>Historial de Registros</h4>
+                <div class="historial-controls">
+                    <input type="text" id="buscarHistorial" placeholder="🔍 Buscar por operador, camión..."
+                        onkeyup="filtrarHistorial()">
+                    <button class="btn btn-submit" onclick="exportarHistorialPDF()">📥 EXPORTAR HISTORIAL</button>
+                </div>
+                <div class="table-wrapper historial-table">
+                    <table id="tablaHistorial">
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>OPERADOR</th>
+                                <th>ENTRADA</th>
+                                <th>SALIDA</th>
+                                <th>CAMION</th>
+                                <th>CAJA</th>
+                                <th>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoHistorial"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Firma -->
+        <div id="modalFirma" class="modal">
+            <div class="modal-content">
+                <h3>Firma de Conformidad</h3>
+                <canvas id="canvasFirma"></canvas>
+                <div class="modal-btns">
+                    <button class="btn btn-clear" onclick="cerrarFirma(false)">CANCELAR</button>
+                    <button class="btn btn-submit" onclick="cerrarFirma(true)">ACEPTAR FIRMA</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edición de Registro -->
+        <div id="modalEditarRegistro" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 500px;">
+                <h3>✏️ Editar Registro</h3>
+                <div class="form-edicion">
+                    <div class="form-group">
+                        <label>Fecha:</label>
+                        <input type="text" id="editFecha" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Operador:</label>
+                        <select id="editOperador" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hora Entrada:</label>
+                        <input type="time" id="editEntrada" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Procedencia:</label>
+                        <input type="text" id="editProcedencia" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora Salida:</label>
+                        <input type="time" id="editSalida" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Destino:</label>
+                        <input type="text" id="editDestino" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>No. Camión:</label>
+                        <input type="text" id="editCamion" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>No. Caja:</label>
+                        <input type="text" id="editCaja" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Anomalías:</label>
+                        <input type="text" id="editAnomalias" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-btns">
+                    <button class="btn btn-submit" onclick="guardarEdicionRegistro()">GUARDAR CAMBIOS</button>
+                    <button class="btn btn-clear" onclick="cerrarModalEdicion()">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmación -->
+        <div id="modalConfirmacion" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 320px; text-align: center;">
+                <h3 style="color: #28a745; margin-bottom: 15px;">✓ Éxito</h3>
+                <p id="mensajeConfirmacion" style="font-size: 16px; margin: 15px 0 25px; color: #333;">Registro
+                    modificado correctamente</p>
+                <button class="btn btn-submit"
+                    style="margin: 0 auto; display: block; min-width: 160px; padding: 14px 30px;"
+                    onclick="cerrarModalConfirmacion()">ACEPTAR</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+</body>
+
+</html>
